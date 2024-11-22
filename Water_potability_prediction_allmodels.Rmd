@@ -1,0 +1,362 @@
+---
+title: "Water Potability  all models"
+author: "Yuthish Kumar"
+date: "2024-11-22"
+output: html_document
+---
+
+## water potability prediction
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# random forest 
+```{r}
+# Load necessary libraries
+library(randomForest)
+library(caret)
+library(readr)
+
+# Load the dataset
+data <- read_csv("/Users/yuthishkumar/Downloads/drinkingwater_test.csv")
+
+# Data Preprocessing
+data <- na.omit(data)
+data$Potability <- as.factor(data$Potability)
+
+# Split the dataset into training and testing sets
+set.seed(123)
+index <- createDataPartition(data$Potability, p = 0.8, list = FALSE)
+train_data <- data[index,]
+test_data <- data[-index,]
+
+# Train a Random Forest model
+set.seed(123)
+rf_model <- randomForest(
+  Potability ~ ., 
+  data = train_data, 
+  ntree = 500,             # Number of trees
+  mtry = 3,                # Number of variables considered for splitting
+  importance = TRUE        # Enable variable importance
+)
+
+# Generate predictions using the trained model
+rf_predictions <- predict(rf_model, newdata = test_data)
+
+# Evaluate the model
+conf_matrix_rf <- confusionMatrix(rf_predictions, test_data$Potability)
+
+# Extract and display relevant statistics
+rf_stats <- list(
+  Accuracy = conf_matrix_rf$overall['Accuracy'],
+  Kappa = conf_matrix_rf$overall['Kappa'],
+  Sensitivity = conf_matrix_rf$byClass['Sensitivity'],
+  Specificity = conf_matrix_rf$byClass['Specificity'],
+  F1_Score = conf_matrix_rf$byClass['F1']
+)
+
+# Print results
+print(paste("Random Forest Model Accuracy:", round(rf_stats$Accuracy, 4)))
+print(paste("Random Forest Model Kappa:", round(rf_stats$Kappa, 4)))
+print(paste("Random Forest Model Sensitivity:", round(rf_stats$Sensitivity, 4)))
+print(paste("Random Forest Model Specificity:", round(rf_stats$Specificity, 4)))
+print(paste("Random Forest Model F1-Score:", round(rf_stats$F1_Score, 4)))
+
+# Save the Random Forest model to a file
+saveRDS(rf_model, "/Users/yuthishkumar/Downloads/rf_model.rds")
+
+```
+# decision tree
+```{r}
+
+# Set working directory
+setwd("/Users/yuthishkumar/Downloads")
+
+# Load necessary libraries
+library(readr)
+library(caret)
+library(rpart)
+library(rpart.plot)
+
+# Load the dataset
+data <- read_csv("/Users/yuthishkumar/Downloads/drinkingwater_test.csv")
+
+# Check the structure of the dataset
+str(data)
+
+# Data Preprocessing
+# Handle missing values if necessary
+data <- na.omit(data)
+
+# Convert 'Potability' to factor
+data$Potability <- as.factor(data$Potability)
+
+# Split the dataset into training and testing sets
+set.seed(123) # For reproducibility
+index <- createDataPartition(data$Potability, p = 0.8, list = FALSE)
+train_data <- data[index,]
+test_data <- data[-index,]
+
+# Train a Decision Tree model using rpart
+model_dt <- rpart(Potability ~ ., data = train_data, method = "class")
+
+# Plot the decision tree
+rpart.plot(model_dt, type = 2, extra = 104, fallen.leaves = TRUE)
+
+# Predict on the test set
+predictions_dt <- predict(model_dt, test_data, type = "class")
+
+# Evaluate the model
+conf_matrix_dt <- confusionMatrix(predictions_dt, test_data$Potability)
+
+# Extract and display relevant statistics
+dt_stats <- list(
+  Accuracy = conf_matrix_dt$overall['Accuracy'],
+  Kappa = conf_matrix_dt$overall['Kappa'],
+  Sensitivity = conf_matrix_dt$byClass['Sensitivity'],
+  Specificity = conf_matrix_dt$byClass['Specificity'],
+  F1_Score = conf_matrix_dt$byClass['F1']
+)
+
+# Print results
+print(paste("Decision Tree Model Accuracy:", round(dt_stats$Accuracy, 4)))
+print(paste("Decision Tree Model Kappa:", round(dt_stats$Kappa, 4)))
+print(paste("Decision Tree Model Sensitivity:", round(dt_stats$Sensitivity, 4)))
+print(paste("Decision Tree Model Specificity:", round(dt_stats$Specificity, 4)))
+print(paste("Decision Tree Model F1-Score:", round(dt_stats$F1_Score, 4)))
+
+
+```
+
+# support vector machine
+```{r}
+# Load necessary libraries
+library(readr)
+library(caret)
+library(e1071)
+
+# Load the dataset
+data <- read_csv("/Users/yuthishkumar/Downloads/drinkingwater_test.csv")
+
+# Check the structure of the dataset
+str(data)
+
+# Data Preprocessing
+# Handle missing values if necessary
+data <- na.omit(data)
+
+# Convert 'Potability' to factor
+data$Potability <- as.factor(data$Potability)
+
+# Split the dataset into training and testing sets
+set.seed(123) # For reproducibility
+index <- createDataPartition(data$Potability, p = 0.8, list = FALSE)
+train_data <- data[index,]
+test_data <- data[-index,]
+
+# Train a Support Vector Machine model
+svm_model <- svm(Potability ~ ., data = train_data, kernel = "radial")
+
+# Predict on the test set
+svm_predictions <- predict(svm_model, test_data)
+
+# Evaluate the model
+svm_conf_matrix <- confusionMatrix(svm_predictions, test_data$Potability)
+
+# Extract and print overall statistics except confusion matrix
+stats <- list(
+  Accuracy = svm_conf_matrix$overall['Accuracy'],
+  Kappa = svm_conf_matrix$overall['Kappa'],
+  Sensitivity = svm_conf_matrix$byClass['Sensitivity'],
+  Specificity = svm_conf_matrix$byClass['Specificity'],
+  F1_Score = svm_conf_matrix$byClass['F1']
+)
+print(stats)
+
+```
+
+# gradeint boosting
+```{r}
+# Load necessary libraries
+library(gbm)
+library(caret)
+library(readr)
+
+# Load the dataset
+data <- read_csv("/Users/yuthishkumar/Downloads/drinkingwater_test.csv")
+
+# Data Preprocessing
+data <- na.omit(data)
+data$Potability <- as.factor(data$Potability)
+
+# Split the dataset into training and testing sets
+set.seed(123)
+index <- createDataPartition(data$Potability, p = 0.8, list = FALSE)
+train_data <- data[index,]
+test_data <- data[-index,]
+
+# Convert Potability to numeric (0 or 1)
+train_data$Potability <- as.numeric(as.character(train_data$Potability))
+test_data$Potability <- as.numeric(as.character(test_data$Potability))
+
+# Train a Gradient Boosting model
+set.seed(123)
+gbm_model <- gbm(
+  Potability ~ ., 
+  data = train_data, 
+  distribution = "bernoulli",  # Use Bernoulli for binary classification
+  n.trees = 100,               # Number of trees
+  interaction.depth = 3,       # Maximum depth of trees
+  shrinkage = 0.1,             # Learning rate
+  cv.folds = 5                 # Cross-validation
+)
+
+# Generate predictions using the trained model
+gbm_predictions <- predict(gbm_model, newdata = test_data, n.trees = gbm_model$n.trees, type = "response")
+
+# Convert the predictions to binary (0 or 1) by setting a threshold (e.g., 0.5)
+gbm_predictions <- ifelse(gbm_predictions > 0.5, 1, 0)
+
+# Ensure the predictions and actual values are factors with the same levels
+gbm_predictions <- factor(gbm_predictions, levels = c(0, 1))
+test_data$Potability <- factor(test_data$Potability, levels = c(0, 1))
+
+# Evaluate the model
+conf_matrix <- confusionMatrix(gbm_predictions, test_data$Potability)
+
+# Extract and display relevant statistics
+gbm_stats <- list(
+  Accuracy = conf_matrix$overall['Accuracy'],
+  Kappa = conf_matrix$overall['Kappa'],
+  Sensitivity = conf_matrix$byClass['Sensitivity'],
+  Specificity = conf_matrix$byClass['Specificity'],
+  F1_Score = conf_matrix$byClass['F1']
+)
+
+# Print results
+print(paste("Gradient Boosting Model Accuracy:", round(gbm_stats$Accuracy, 4)))
+print(paste("Gradient Boosting Model Kappa:", round(gbm_stats$Kappa, 4)))
+print(paste("Gradient Boosting Model Sensitivity:", round(gbm_stats$Sensitivity, 4)))
+print(paste("Gradient Boosting Model Specificity:", round(gbm_stats$Specificity, 4)))
+print(paste("Gradient Boosting Model F1-Score:", round(gbm_stats$F1_Score, 4)))
+
+# Save the Gradient Boosting
+
+```
+```{r}
+
+```
+
+```{r}
+# Load the ggplot2 library for visualization
+library(ggplot2)
+
+# Create a data frame with model names and their respective accuracies
+model_data <- data.frame(
+  Model = c("Random Forest", "Gradient Boosting", "Decision Tree", "SVM"),
+  Accuracy = c(0.875 , 0.9166667, 0.7083, 0.8958333)
+)
+
+# Create a bar chart using ggplot2
+ggplot(data = model_data, aes(x = Model, y = Accuracy, fill = Model)) +
+  geom_bar(stat = "identity", width = 0.7) + # Create bars
+  geom_text(aes(label = round(Accuracy, 2)), # Add labels to bars
+            vjust = -0.5, size = 4) +       # Position labels above bars
+  scale_fill_brewer(palette = "Set2") +     # Use a visually appealing color palette
+  labs(
+    title = "Accuracy Levels of Models",
+    x = "Model",
+    y = "Accuracy"
+  ) +
+  ylim(0, 1) +                              # Set y-axis limits to accommodate labels
+  theme_minimal() +                         # Use a clean theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), # Rotate x-axis labels for readability
+    legend.position = "none" # Remove legend as it's redundant
+  )
+
+```
+
+### providing inputs to the gradient boosting model to check water potability
+```{r}
+# Load necessary libraries
+library(gbm)
+library(caret)
+library(readr)
+
+# Step 1: Load the dataset
+data <- read_csv("/Users/yuthishkumar/Downloads/drinkingwater_test.csv")
+
+# Step 2: Data Preprocessing
+data <- na.omit(data)
+data$Potability <- as.factor(data$Potability)
+
+# Split the dataset into training and testing sets
+set.seed(123)
+index <- createDataPartition(data$Potability, p = 0.8, list = FALSE)
+train_data <- data[index,]
+test_data <- data[-index,]
+
+# Convert Potability to numeric (0 or 1) for Gradient Boosting
+train_data$Potability <- as.numeric(as.character(train_data$Potability))
+test_data$Potability <- as.numeric(as.character(test_data$Potability))
+
+# Step 3: Train the Gradient Boosting model
+set.seed(123)
+gbm_model <- gbm(
+  Potability ~ ., 
+  data = train_data, 
+  distribution = "bernoulli",  # Binary classification
+  n.trees = 100,               # Number of trees
+  interaction.depth = 3,       # Maximum depth of trees
+  shrinkage = 0.1,             # Learning rate
+  cv.folds = 5                 # Cross-validation
+)
+
+# Save the model
+saveRDS(gbm_model, "/Users/yuthishkumar/Downloads/gbm_model.rds")
+
+# Step 4: Load the saved model
+gbm_model <- readRDS("/Users/yuthishkumar/Downloads/gbm_model.rds")
+
+
+
+
+# Use provided values for prediction(potable)
+user_input <- data.frame(
+  ph = 6.964225943,
+  Hardness = 212.7644944,
+  Solids = 29957.19122,
+  Chloramines = 7.675187646,
+  Sulfate = 321.2508981,
+  Conductivity = 378.0855456,
+  Organic_carbon = 13.12769368,
+  Trihalomethanes = 72.08900098,
+  Turbidity = 3.990437572
+)
+
+
+# Predict using the loaded Gradient Boosting model
+prediction <- predict(gbm_model, newdata = user_input, n.trees = gbm_model$n.trees, type = "response")
+
+# Convert the prediction to binary (0 or 1) using a threshold (e.g., 0.5)
+potability <- ifelse(prediction > 0.5, "Potable", "Not Potable")
+
+# Output the result
+cat("Predicted Water Potability:", potability, "\n")
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+
+```{r}
+```
+
