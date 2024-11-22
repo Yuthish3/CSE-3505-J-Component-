@@ -1,0 +1,311 @@
+---
+title: "JCOMP2"
+output:
+  html_document: default
+  pdf_document: default
+date: "2024-09-14"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Install necessary packages
+#install.packages(c("tidyverse", "ggplot2", "plotly", "sf", "leaflet", "readr"))
+
+   # For reading the CSV file
+
+```
+```{r}
+# Install the necessary packages if not already installed
+#install.packages("tidyverse")  # This includes dplyr and ggplot2
+
+# Load the tidyverse package
+library(tidyverse)
+
+```
+
+
+
+```{r}
+# View the column names of the dataset to identify the correct one
+colnames(data)
+```
+
+
+```{r}
+# Reducing the number of countries to top 20 based on mortality rate
+top_20_data <- clean_data %>%
+  arrange(desc(MortalityRate)) %>%
+  head(20)
+
+# Plotting the top 20 countries
+ggplot(top_20_data, aes(x = reorder(Location, -MortalityRate), y = MortalityRate, fill = ParentLocation)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Top 20 Countries by Mortality Rate Due to Unsafe WASH Services",
+       x = "Country",
+       y = "Mortality Rate (per 100,000 population)",
+       fill = "Region") +
+  coord_flip() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Convert to interactive plot with plotly for more exploration
+plotly::ggplotly()
+
+```
+
+
+
+```{r}
+#install.packages("leaflet")
+```
+
+
+
+
+
+
+
+
+```{r}
+# Heatmap of mortality rates by region
+ggplot(clean_data, aes(x = ParentLocation, y = Location, fill = MortalityRate)) +
+  geom_tile(color = "white") +
+  scale_fill_viridis_c(option = "C") +
+  theme_minimal() +
+  labs(title = "Regional Comparison of Mortality Rates",
+       x = "Region",
+       y = "Country",
+       fill = "Mortality Rate")
+
+```
+```{r}
+# Boxplot for comparing mortality rates across regions
+ggplot(clean_data, aes(x = ParentLocation, y = MortalityRate, fill = ParentLocation)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Distribution of Mortality Rates by Region",
+       x = "Region",
+       y = "Mortality Rate (per 100,000 population)") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+ggplot(clean_data, aes(x = ParentLocation, y = MortalityRate, fill = ParentLocation)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Distribution of Mortality Rates by Region",
+       x = "Region",
+       y = "Mortality Rate (per 100,000 population)") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8))
+```
+
+```{r}
+#install.packages("rworldmap")
+```
+
+```{r}
+library(rworldmap)
+
+# Join clean_data with world map data
+map_data <- joinCountryData2Map(clean_data, joinCode = "ISO3", nameJoinColumn = "SpatialDimValueCode")
+
+# Plot the choropleth map
+mapCountryData(map_data, 
+               nameColumnToPlot = "MortalityRate", 
+               mapTitle = "Global Mortality Rate Due to Unsafe WASH Services",
+               colourPalette = "heat",
+               oceanCol = "lightblue")
+
+```
+
+
+
+```{r}
+labs(title = "Top 10 Countries by Mortality Rate",
+       x = "Country",
+       y = "Mortality Rate (per 100,000 population)") +
+  theme_minimal()
+
+```
+
+
+
+```{r}
+# Correcting the column name for map plotting
+map_data <- joinCountryData2Map(clean_data, joinCode = "ISO3", nameJoinColumn = "SpatialDimValueCode")
+
+# Plot the map with corrected column 'MortalityRate'
+mapCountryData(map_data, nameColumnToPlot = "MortalityRate", 
+               mapTitle = "Mortality Rate due to Unsafe WASH Services",
+               catMethod = "fixedWidth", 
+               colourPalette = "heat")
+
+```
+
+
+
+```{r}
+# Check if 'Period' exists
+if ("Period" %in% colnames(clean_data)) {
+    ggplot(clean_data, aes(x = Period, y = MortalityRate, color = Region)) +
+      geom_line() +
+      labs(title = "Mortality Rate Over Time by Region",
+           x = "Period", y = "Mortality Rate (per 100,000)") +
+      theme_minimal()
+} else {
+    print("The 'Period' column does not exist in the dataset.")
+}
+
+```
+
+
+
+
+```{r}
+# Install leaflet if you don't have it
+# install.packages("leaflet")
+
+library(leaflet)
+
+# Create a basic leaflet choropleth map
+leaflet(map_data) %>%
+  addTiles() %>%  # Default OpenStreetMap tiles
+  addPolygons(fillColor = ~colorQuantile("YlOrRd", MortalityRate)(MortalityRate),
+              weight = 1,
+              opacity = 1,
+              color = "white",
+              dashArray = "3",
+              fillOpacity = 0.7,
+              highlight = highlightOptions(weight = 2, color = "#666", dashArray = "", fillOpacity = 0.7, bringToFront = TRUE),
+              label = ~paste0(Location, ": ", MortalityRate, " per 100,000"),
+              labelOptions = labelOptions(style = list("font-weight" = "normal", padding = "3px 8px"),
+                                          textsize = "15px", direction = "auto")) %>%
+  addLegend(pal = colorQuantile("YlOrRd", map_data$MortalityRate), 
+            values = ~MortalityRate, opacity = 0.7, title = "Mortality Rate",
+            position = "bottomright")
+
+```
+
+```{r}
+#install.packages("ggiraph")
+```
+
+```{r}
+# Install ggiraph if you don't have it
+# install.packages("ggiraph")
+
+library(ggiraph)
+```
+
+
+
+```{r}
+# Simplified interactive bar plot focusing on the top 15 countries by MortalityRate
+library(plotly)
+
+# Filter top 15 countries by MortalityRate for clarity
+top_15_countries <- clean_data %>%
+  arrange(desc(MortalityRate)) %>%
+  head(15)
+
+# Create an interactive bar plot using plotly
+fig <- plot_ly(top_15_countries, 
+               x = ~MortalityRate, 
+               y = ~reorder(Location, MortalityRate), 
+               type = 'bar', 
+               orientation = 'h',  # Horizontal bars for better readability
+               text = ~paste("Country: ", Location, "<br>Mortality Rate: ", MortalityRate),  # Tooltip
+               marker = list(color = 'rgba(50,171,96,0.6)', 
+                             line = list(color = 'rgba(50,171,96,1.0)', width = 1.5)))
+
+# Layout and title
+fig <- fig %>% layout(title = "Top 15 Countries by Mortality Rate due to Unsafe WASH Services",
+                      xaxis = list(title = "Mortality Rate (per 100,000)"),
+                      yaxis = list(title = "Country", tickangle = 0),
+                      margin = list(l = 100))  # Adjust margin for readability
+
+# Show the plot
+fig
+
+```
+
+```{r}
+#install.packages("networkD3")
+```
+
+
+```{r}
+#install.packages("pheatmap")
+```
+
+```{r}
+library(pheatmap)
+
+# Prepare the data for the heatmap
+heatmap_data <- clean_data %>%
+  filter(!is.na(MortalityRate)) %>%
+  select(Location, MortalityRate) %>%
+  arrange(desc(MortalityRate)) %>%
+  head(30)
+
+# Convert the data into a matrix for heatmap
+heatmap_matrix <- as.matrix(heatmap_data$MortalityRate)
+rownames(heatmap_matrix) <- heatmap_data$Location
+
+# Create a heatmap with clustering (dendrogram)
+pheatmap(heatmap_matrix,
+         cluster_rows = TRUE, 
+         cluster_cols = FALSE,
+         main = "Hierarchical Clustering of Mortality Rates",
+         color = colorRampPalette(c("blue", "yellow", "red"))(50))
+
+```
+```{r}
+#install.packages("treemap")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
